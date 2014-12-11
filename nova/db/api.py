@@ -1029,6 +1029,9 @@ def quota_get_all_by_project(context, project_id):
     """Retrieve all quotas associated with a given project."""
     return IMPL.quota_get_all_by_project(context, project_id)
 
+def quota_get_all_records(context, project_id=None, all_tenants=False):
+    """Retrieve all quotas for all projects."""
+    return IMPL.quota_get_all_records(context, project_id, all_tenants)
 
 def quota_get_all(context, project_id):
     """Retrieve all user quotas associated with a given project."""
@@ -1076,6 +1079,8 @@ def quota_usage_get(context, project_id, resource, user_id=None):
     """Retrieve a quota usage or raise if it does not exist."""
     return IMPL.quota_usage_get(context, project_id, resource, user_id=user_id)
 
+def quota_usage_get_all_records(context, project_id, all_tenants=False):
+    return IMPL.quota_usage_get_all_records(context, project_id, all_tenants)
 
 def quota_usage_get_all_by_project_and_user(context, project_id, user_id):
     """Retrieve all usage associated with a given resource."""

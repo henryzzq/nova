@@ -34,6 +34,44 @@ class ViewBuilder(object):
 
         return output
 
+    def build_all(self, quotas):
+        quota_list = []
+        for quota in quotas:
+            project_limits = self._build_all_absolute_limits(quota)
+            quota_list.append(project_limits)
+            
+        output = {
+                  "limits": quota_list,
+        }
+        
+        return output
+
+    def _build_all_absolute_limits(self, absolute_limits):
+        limit_names = {
+                       "project_id" : ["project_id"],
+                       "ram": ["maxTotalRAMSize"],
+                       "instances": ["maxTotalInstances"],
+                       "cores": ["maxTotalCores"],
+                       "key_pairs": ["maxTotalKeypairs"],
+                       "floating_ips": ["maxTotalFloatingIps"],
+                       "metadata_items": ["maxServerMeta", "maxImageMeta"],
+                       "injected_files": ["maxPersonality"],
+                       "injected_file_content_bytes": ["maxPersonalitySize"],
+                       "security_groups": ["maxSecurityGroups"],
+                       "security_group_rules": ["maxSecurityGroupRules"],
+                       "totalRAMUsed": ["totalRAMUsed"],
+                       "totalCoresUsed": ["totalCoresUsed"],
+                       "totalInstancesUsed": ["totalInstancesUsed"],
+                       "totalFloatingIpsUsed": ["totalFloatingIpsUsed"],
+                       "totalSecurityGroupsUsed": ["totalSecurityGroupsUsed"],
+        }
+        limits = {}
+        for name, value in absolute_limits.iteritems():
+            if name in limit_names and value is not None:
+                for name in limit_names[name]:
+                    limits[name] = value
+        return limits
+
     def _build_absolute_limits(self, absolute_limits):
         """Builder for absolute limits
 

@@ -2802,6 +2802,25 @@ def quota_get_all_by_project(context, project_id):
 
     return result
 
+@require_context
+def quota_get_all_records(context, project_id, all_tenants=False):
+    rows = []
+    if all_tenants:
+        rows = model_query(context, models.Quota, read_deleted="no").\
+                        all()
+    else:
+        rows = model_query(context, models.Quota, read_deleted="no").\
+                        filter_by(project_id=project_id).\
+                        all()
+    pro_dict = {}
+    for row in rows:
+        pro_quota = pro_dict.get(row.project_id)
+        if not pro_quota:
+            pro_quota = {'project_id': row.project_id}
+        pro_quota[row.resource] = row.hard_limit
+        pro_dict[row.project_id] = pro_quota
+
+    return pro_dict.values()
 
 @require_context
 def quota_get_all(context, project_id):
@@ -2934,6 +2953,31 @@ def quota_usage_get(context, project_id, resource, user_id=None):
 
     return result
 
+@require_context
+def quota_usage_get_all_records(context, project_id, all_tenants=False):
+    rows = []
+    if all_tenants:
+        rows = model_query(context, models.QuotaUsage, read_deleted="no").\
+                        all()
+    else:
+        rows = model_query(context, models.QuotaUsage, read_deleted="no").\
+                        filter_by(project_id=project_id).\
+                        all()
+                        
+    pro_dict = {}
+    for row in rows:
+        pro_usage = pro_dict.get(row.project_id)
+        if not pro_usage:
+            pro_usage= {'project_id': row.project_id}
+        if row.resource in pro_usage:
+            pro_usage[row.resource]['in_use'] += row.in_use
+            pro_usage[row.resource]['reserved'] += row.reserved
+        else:
+            pro_usage[row.resource] = dict(in_use=row.in_use,
+                                           reserved=row.reserved)
+        pro_dict[row.project_id] = pro_usage
+        
+    return pro_dict.values()
 
 def _quota_usage_get_all(context, project_id, user_id=None):
     nova.context.authorize_project_context(context, project_id)

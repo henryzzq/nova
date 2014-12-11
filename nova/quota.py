@@ -272,6 +272,49 @@ class DbQuotaDriver(object):
                                     project_quotas, quota_class,
                                     defaults=defaults, usages=project_usages,
                                     remains=remains)
+        
+    def get_quotas(self, context, resources=None, project_id=None,
+                   user_id=None, usages=True,
+                   remains=False, all_tenants=False):
+        """Given a list of quotas for all projects.
+        
+        :param context: The request context, for access checks.
+        """
+        db_quotas = db.quota_get_all_records(context,
+                                             project_id,
+                                             all_tenants)
+        db_usages = None
+        if usages:
+            db_usages = db.quota_usage_get_all_records(context,
+                                                       project_id,
+                                                       all_tenants)
+            
+        project_dict = {}
+        for row in db_quotas:
+            project_dict[row['project_id']] = row
+            
+        default_quotas = self.get_defaults(context, resources)
+        quota_map = {'totalRAMUsed': 'ram',
+                     'totalCoresUsed': 'cores',
+                     'totalInstancesUsed': 'instances',
+                     'totalFloatingIpsUsed': 'floating_ips',
+                     'totalSecurityGroupsUsed': 'security_groups',
+                     }
+
+        for row in db_usages:
+            current_id = row['project_id']
+            if not project_dict.get(current_id):
+                project_dict[current_id] = dict(default_quotas)
+                project_dict[current_id]['project_id'] = current_id
+                
+            for display_name, quota in quota_map.iteritems():
+                if quota in row:
+                    reserved = row[quota]['reserved']
+                    project_dict[current_id][display_name] = reserved +\
+                                                    row[quota]['in_use']
+
+        return project_dict.values();
+    
 
     def get_settable_quotas(self, context, resources, project_id,
                             user_id=None):
@@ -1163,6 +1206,18 @@ class QuotaEngine(object):
                                               defaults=defaults,
                                               usages=usages,
                                               remains=remains)
+
+    def get_quotas(self, context, resources=None, project_id=None,
+                   user_id=None, usages=True,
+                   remains=False, all_tenants=False):
+        """Given a list of quotas for all projects.
+        
+        :param context: The request context, for access checks.
+        """
+        
+        return self._driver.get_quotas(context, self._resources,
+                                       project_id, user_id=user_id,
+                                       all_tenants = all_tenants);
 
     def get_settable_quotas(self, context, project_id, user_id=None):
         """Given a list of resources, retrieve the range of settable quotas for

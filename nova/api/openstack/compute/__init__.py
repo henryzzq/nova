@@ -87,7 +87,9 @@ class APIRouter(nova.api.openstack.APIRouter):
         if init_only is None or 'limits' in init_only:
             self.resources['limits'] = limits.create_resource()
             mapper.resource("limit", "limits",
-                            controller=self.resources['limits'])
+                            controller=self.resources['limits'],
+                            collection={'detail': 'GET'})
+            
 
         if init_only is None or 'flavors' in init_only:
             self.resources['flavors'] = flavors.create_resource()

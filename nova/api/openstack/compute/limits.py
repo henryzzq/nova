@@ -47,8 +47,11 @@ from nova.api.openstack import xmlutil
 from nova.openstack.common.gettextutils import _
 from nova.openstack.common import importutils
 from nova.openstack.common import jsonutils
+from nova.openstack.common import strutils
 from nova import quota
 from nova import utils
+from nova import policy
+from nova import exception
 from nova import wsgi as base_wsgi
 
 
@@ -109,7 +112,25 @@ class LimitsController(object):
 
     def detail(self, req):
         """Return limit details."""
-        raise webob.exc.HTTPNotImplemented()
+        context = req.environ['nova.context']
+        all_tenants = req.GET.get('all_tenants')
+        if all_tenants:
+            try:
+                all_tenants = strutils.bool_from_string(all_tenants, True)
+            except ValueError as err:
+                raise exception.InvalidInput(str(err))
+            
+            policy.enforce(context, 'admin_api',
+                           {'project_id': context.project_id,
+                            'user_id': context.user_id})
+        else:
+            all_tenants = False
+        
+        quotas = QUOTAS.get_quotas(context, project_id=context.project_id,
+                                   all_tenants = all_tenants)
+        builder = self._get_view_builder(req)
+        result = builder.build_all(quotas);
+        return result;
 
     def show(self, req, id):
         """Show limit information."""
